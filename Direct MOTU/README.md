@@ -12,5 +12,11 @@ The MOTU client code and the motu-client-python.ini file must be saved in $HOME/
 ```
 This will download the NC file from CMEMS, accesses the database and launches threads to extract data for each single spot and saves the results in separate json files. The script grab_oneSpotFromMOTU.py provides data extraction from NC file and gathering the wind from NOAA.
 
+This second script can be also used stand-laone, if you alread have downloaded the NC file, to show the spot data:
+
+```
+./grab_oneSpotFromMOTU.py <lat> <lon> <path-to-NC-file>
+```
+
 
 

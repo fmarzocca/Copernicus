@@ -11,4 +11,8 @@ A file stored in ./db/dbaseconfig.py contains the spots database reference.
 ```
 This will start parsing of the OpeNDAP service, by launching threads over each spot coordinate and save the result in separate json files. The script grab_Copernicus.py provides data extraction for a single spot and gathering the wind from NOAA.
 
+This second script can be also used stand-laone to show thesingle  spot data:
 
+```
+./grab_Copernicus.py <lat> <lon> 
+```

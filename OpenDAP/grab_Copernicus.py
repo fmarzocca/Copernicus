@@ -5,8 +5,10 @@
 #
 # Python script to get OpeNDap forecasts from CMEMS and wind data from NOAA-GFS
 # 
-#  (C) Copyright 2017 - Fabio Marzocca - marzoccafabio@gmail.com
+#  (C) Copyright 2017-2018 - Fabio Marzocca - marzoccafabio@gmail.com
 # 
+# USAGE:
+# ./grab_Copernicus.py <lat> <lon> 
 #  License: GPL
 
 # get the structure
