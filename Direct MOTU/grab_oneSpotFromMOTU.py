@@ -34,6 +34,9 @@ LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = path + "/log/" + 'grab_fromMOTU.log'
 logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
 
+FROMEMAIL = "<your from address>"
+TOEMAIL = "<you-to-address"
+
 
 def exportJSON(Data):
     print(json.dumps(Data, separators=(',', ':')))
@@ -189,8 +192,8 @@ def prepareDataFromNC(ncFile):
 def send_notice_mail(text):
     from email.mime.text import MIMEText
 
-    FROM = "Root <fm@fabiomarzocca.com>"
-    TO = "marzoccafabio@gmail.com"
+    FROM = FROMEMAIL
+    TO = TOEMAIL
 
     SUBJECT = "MeteoSurf notice (CMEMS from MOTU)!"
 

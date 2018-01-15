@@ -38,6 +38,8 @@ OUTDIR = "/tmp/"
 OUTFILE = 'CMEMS_006_011.nc'
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
 
+FROMEMAIL = "<your from address>"
+TOEMAIL = "<you-to-address"
 
 def getNCFile(minLat, minLon, maxLat, maxLon):
     startDate = datetime.utcnow().strftime("%Y-%m-%d")
@@ -98,8 +100,8 @@ def saveSpot(lat, lon, id):
 def send_notice_mail(text):
     from email.mime.text import MIMEText
 
-    FROM = "Root <fm@fabiomarzocca.com>"
-    TO = "marzoccafabio@gmail.com"
+    FROM = FROMEMAIL
+    TO = TOEMAIL
 
     SUBJECT = "MeteoSurf notice (CMEMS from MOTU)!"
 

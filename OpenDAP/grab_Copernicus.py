@@ -31,6 +31,8 @@ LOGFILE = os.path.dirname(os.path.abspath(__file__)) + \
 logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
 BASEURL = 'http://cmems-med-mfc.eu/thredds/dodsC/sv03-med-hcmr-wav-an-fc-h'
 
+FROMEMAIL = "<your from address>"
+TOEMAIL = "<you-to-address"
 
 def getDataStructure():
     dimensions = {}
@@ -336,8 +338,8 @@ def exportJSON(Data):
 def send_notice_mail(text):
     from email.mime.text import MIMEText
 
-    FROM = "Root <fm@fabiomarzocca.com>"
-    TO = "marzoccafabio@gmail.com"
+    FROM = FROMEMAIL
+    TO = TOEMAIL
 
     SUBJECT = "MeteoSurf notice (Copernicus)!"
 
