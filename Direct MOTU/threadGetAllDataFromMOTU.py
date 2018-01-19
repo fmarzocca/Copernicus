@@ -56,7 +56,7 @@ def getNCFile(minLat, minLon, maxLat, maxLon):
         return True
     else:
         logging.warning("Can't download main NC file!")
-        send_notice_mail("Can't download main NC file!")
+        send_notice_mail("Can't download main NC file!\n"+output)
         return False
 
 
