@@ -23,6 +23,9 @@ import os
 from threading import Thread, Lock
 from datetime import datetime, timedelta
 import logging
+import urllib.request
+from urllib.error import URLError, HTTPError
+import shutil
 
 
 path = os.path.dirname(os.path.abspath(__file__))
@@ -37,28 +40,40 @@ MOTUCLIENT = '$HOME/motu-client/motu-client.py'
 OUTDIR = "/tmp/"
 OUTFILE = 'CMEMS_006_011.nc'
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
+FROMEMAL = "<your-from-address"
+TOEMAIL = "<your-to-address"
 
-FROMEMAIL = "<your from address>"
-TOEMAIL = "<you-to-address"
 
 def getNCFile(minLat, minLon, maxLat, maxLon):
     startDate = datetime.utcnow().strftime("%Y-%m-%d")
     endDate = (datetime.utcnow() + timedelta(days=365)).strftime("%Y-%m-%d")
-    logging.warning("NC File requested")
-    output = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_011-TDS  -x ' + minLon + ' -X ' +
-                                  maxLon + ' -y ' + minLat + ' -Y ' + maxLat + ' -t ' +
-                                  startDate + ' -T ' + endDate + ' -v VHM0 -v VMDR -v VTM10 -o ' +
-                                  OUTDIR + ' -f ' + OUTFILE)
 
-    if '[ INFO] Done' in output:
-        logging.warning("NC File: " + OUTDIR + OUTFILE +
-                        " successfully dowloaded.")
-        return True
-    else:
-        logging.warning("Can't download main NC file!")
-        send_notice_mail("Can't download main NC file!\n"+output)
+    # processing: send request to MOTU to get the file url
+    logging.warning("Start processing MOTU request")    
+    requestUrl = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_011-TDS  -x ' + minLon + ' -X ' +
+                                  maxLon + ' -y ' + minLat + ' -Y ' + maxLat + ' -t ' +
+                                  startDate + ' -T ' + endDate + ' -v VHM0 -v VMDR -v VTM10 -q -o console')
+
+    if requestUrl.startswith('http://') == False:
+        logging.warning ('Processing MOTU request failed!')
+        send_notice_mail('Processing MOTU request failed!\n'+requestUrl)
         return False
 
+    logging.warning("Successfully processed MOTU request")
+
+    #downloading NC file
+    try:
+        logging.warning("Start downloading NC file") 
+        with urllib.request.urlopen(requestUrl) as response, open(OUTDIR+OUTFILE, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+    except (HTTPError, URLError) as e:
+        logging.warning("Can't download main NC file: "+requestUrl+" -> "+str(e.reason))
+        send_notice_mail("Can't download main NC file: "+requestUrl+" -> "+str(e.reason))
+        return False
+
+    logging.warning("NC File: " + OUTDIR + OUTFILE +
+                        " successfully dowloaded.")
+    return True
 
 def readData():
     try:
@@ -100,7 +115,7 @@ def saveSpot(lat, lon, id):
 def send_notice_mail(text):
     from email.mime.text import MIMEText
 
-    FROM = FROMEMAIL
+    FROM = FROMEMAL
     TO = TOEMAIL
 
     SUBJECT = "MeteoSurf notice (CMEMS from MOTU)!"
@@ -130,6 +145,7 @@ if __name__ == '__main__':
     maxLon = "36.5"
     minLat = '30'
     maxLat = "46"
+
 
     # get main CMEMS NC file
     if getNCFile(minLat, minLon, maxLat,maxLon) == False:
