@@ -1,6 +1,21 @@
 #!/usr/bin/env python3
+#
+# -*- coding: utf-8 -*-
+#
+# Python script to get CMEMS data from OpeNDAP server
+#      and wind NOAA data from ERDDAP
+#
+#  (C) Copyright 2017-2018 - Fabio Marzocca - marzoccafabio@gmail.com
+#
+#  License: GPL
+#
+# ---- IMPORTANT ---
+# as this script pings the MOTU server for logging purposes,
+# MOTU client configuration file (and MOTU code) is expected to be found in:
+# $HOME/motu-client/motu-client-python.ini
+#
+#
 
-import grab_Copernicus
 import pymysql
 from pymysql import MySQLError
 import subprocess
@@ -9,7 +24,7 @@ import re
 import os
 from threading import Thread, Lock
 from time import sleep
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 try:
     import xml.etree.cElementTree as ET
@@ -24,7 +39,7 @@ import dbaseconfig as cfg
 LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = path + "/log/" + 'grab_Copernicus.log'
 logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
-
+MOTUCLIENT = '$HOME/motu-client/motu-client.py'
 
 
 
@@ -81,15 +96,37 @@ def getLastDate():
 		lastdateZ = (table[len(table) - 1])
 		break
 
+def pingMOTUserver():
+    minLon = '-10'
+    maxLon = "36.5"
+    minLat = '30'
+    maxLat = "46"
+    startDate = datetime.utcnow().strftime("%Y-%m-%d")
+    endDate = (datetime.utcnow() + timedelta(days=365)).strftime("%Y-%m-%d")
 
+    # processing: send request to MOTU to get the file url
+    logging.warning("Start processing MOTU request")    
+    requestUrl = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_011-TDS  -x ' + minLon + ' -X ' +
+                                  maxLon + ' -y ' + minLat + ' -Y ' + maxLat + ' -t ' +
+                                  startDate + ' -T ' + endDate + ' -v VHM0 -v VMDR -v VTM10 -q -o console')
+    if requestUrl.startswith('http://') == False:
+        logging.warning ('Processing MOTU request failed!')
+        return False
+
+    logging.warning("Successfully processed MOTU request")
 
 ###################################
 if __name__ == '__main__':
 	
+	#ping MOTU server for logging purposes
+	t = Thread(target=pingMOTUserver)
+	t.start()
+
 	getLastDate()
 	dbData = readData()
 	if not dbData:
 		sys.exit()
+
 	i=0
 	threads=[]
 	for line in dbData:
@@ -98,7 +135,7 @@ if __name__ == '__main__':
 		process.start()
 		threads.append(process)
 		i += 1
-		if i>50:
+		if i>25:
 			for process in threads:
 				process.join()
 			i = 0
@@ -108,8 +145,6 @@ if __name__ == '__main__':
 	g = open(path+'/CMEMS-update-spots.txt', 'w', encoding='utf-8')
 	g.write(now)
 	g.close()
-	f = open(path+'/CMEMS-update.txt', 'w', encoding='utf-8')
-	f.write(now)
-	f.close()
+
 	
 
