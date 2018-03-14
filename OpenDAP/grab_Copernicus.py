@@ -38,7 +38,7 @@ def getDataStructure():
     dimensions = {}
     url = BASEURL + '.dds'
     try:
-        response = urlopen(url, timeout=20)
+        response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
         logging.warning("Can't get dds data Structure: " +
                         url + " " + str(e.reason))
@@ -78,7 +78,7 @@ def getTimeIdx(dim):
     timeDeltaCMEMS = 12*3600
     url = BASEURL + '.ascii?time[0:1:' + str((int(dim) - 1)) + ']'
     try:
-        response = urlopen(url, timeout=20)
+        response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
         logging.warning("Can't get Time start index: " +
                         url + " " + str(e.reason))
@@ -122,7 +122,7 @@ def getLatLongIdx(latdim, londim, spotLat, spotLon):
     # Latitude list
     url = BASEURL + '.ascii?lat[0:1:' + latdim + ']'
     try:
-        response = urlopen(url, timeout=20)
+        response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
         logging.warning("Can't get Lat index: " +
                         url + " " + str(e.reason))
@@ -153,7 +153,7 @@ def getLatLongIdx(latdim, londim, spotLat, spotLon):
     # Longitude list
     url = BASEURL + '.ascii?lon[0:1:' + londim + ']'
     try:
-        response = urlopen(url, timeout=20)
+        response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
         logging.warning("Can't get Lon index: " +
                         url + " " + str(e.reason))
@@ -195,7 +195,7 @@ def getWaveData(dimTime, minTime, minLat, minLon):
     url = BASEURL + ".ascii?VHM0" + reqStr + ",VTM10" + reqStr + ",VMDR" + reqStr
 
     try:
-        response = urlopen(url, timeout=20)
+        response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
         logging.warning("Can't get wave Data: " + url + " " + str(e.reason))
         send_notice_mail("Can't get wave Data: " + url + " " + str(e.reason))
@@ -299,7 +299,7 @@ def getWindData(timeTable, spotLat, spotLon):
     url = BASEWINDURL + reqStr
 
     try:
-        response = urlopen(url, timeout=20)
+        response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
         logging.warning("Can't get wind Data: " + url + " " + str(e.reason))
         send_notice_mail("Can't get wind Data: " + url + " " + str(e.reason))
