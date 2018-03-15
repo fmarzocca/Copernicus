@@ -81,21 +81,6 @@ def saveSpot(lat, lon, id):
 		f.write(output)
 
 
-def getLastDate():
-	url = "http://cmems-med-mfc.eu/thredds/wms/sv03-med-hcmr-wav-an-fc-h?service=WMS&version=1.3.0&request=GetCapabilities"
-	BaseTag = "{http://www.opengis.net/wms}"
-	try:
-		root = ET.parse(urlopen(url, timeout=20)).getroot()
-	except:
-		logging.warning("Can't get Capabilities for last date")
-		return
-
-	for elem in root.iter(BaseTag + 'Dimension'):
-		a = elem.text
-		table = a.split(",")
-		lastdateZ = (table[len(table) - 1])
-		break
-
 def pingMOTUserver():
     minLon = '-10'
     maxLon = "36.5"
@@ -122,7 +107,6 @@ if __name__ == '__main__':
 	t = Thread(target=pingMOTUserver)
 	t.start()
 
-	getLastDate()
 	dbData = readData()
 	if not dbData:
 		sys.exit()
