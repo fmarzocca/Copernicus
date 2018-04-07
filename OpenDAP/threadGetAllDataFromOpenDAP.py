@@ -94,7 +94,7 @@ def pingMOTUserver():
     requestUrl = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_011-TDS  -x ' + minLon + ' -X ' +
                                   maxLon + ' -y ' + minLat + ' -Y ' + maxLat + ' -t ' +
                                   startDate + ' -T ' + endDate + ' -v VHM0 -v VMDR -v VTM10 -q -o console')
-    if requestUrl.startswith('http://') == False:
+    if "http://" not in requestUrl:
         logging.warning ('Processing MOTU request failed!')
         return False
 

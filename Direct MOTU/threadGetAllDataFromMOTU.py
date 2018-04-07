@@ -54,7 +54,7 @@ def getNCFile(minLat, minLon, maxLat, maxLon):
                                   maxLon + ' -y ' + minLat + ' -Y ' + maxLat + ' -t ' +
                                   startDate + ' -T ' + endDate + ' -v VHM0 -v VMDR -v VTM10 -q -o console')
 
-    if requestUrl.startswith('http://') == False:
+    if "http://" not in requestUrl:
         logging.warning ('Processing MOTU request failed!')
         send_notice_mail('Processing MOTU request failed!\n'+requestUrl)
         return False
@@ -62,13 +62,14 @@ def getNCFile(minLat, minLon, maxLat, maxLon):
     logging.warning("Successfully processed MOTU request")
 
     #downloading NC file
+    myurl = "http://"+requestUrl.split("http://")[1]
     try:
         logging.warning("Start downloading NC file") 
-        with urllib.request.urlopen(requestUrl) as response, open(OUTDIR+OUTFILE, 'wb') as out_file:
+        with urllib.request.urlopen(myurl) as response, open(OUTDIR+OUTFILE, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
     except (HTTPError, URLError) as e:
-        logging.warning("Can't download main NC file: "+requestUrl+" -> "+str(e.reason))
-        send_notice_mail("Can't download main NC file: "+requestUrl+" -> "+str(e.reason))
+        logging.warning("Can't download main NC file: "+myurl+" -> "+str(e.reason))
+        send_notice_mail("Can't download main NC file: "+myurl+" -> "+str(e.reason))
         return False
 
     logging.warning("NC File: " + OUTDIR + OUTFILE +
