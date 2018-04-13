@@ -38,10 +38,10 @@ logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
 
 MOTUCLIENT = '$HOME/motu-client/motu-client.py'
 OUTDIR = "/tmp/"
-OUTFILE = 'CMEMS_006_011.nc'
+OUTFILE = 'CMEMS_006_017.nc'
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
-FROMEMAL = "<your-from-address"
-TOEMAIL = "<your-to-address"
+FROMEMAIL = "<your from address>"
+TOEMAIL = "<you-to-address"
 
 
 def getNCFile(minLat, minLon, maxLat, maxLon):
@@ -50,7 +50,7 @@ def getNCFile(minLat, minLon, maxLat, maxLon):
 
     # processing: send request to MOTU to get the file url
     logging.warning("Start processing MOTU request")    
-    requestUrl = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_011-TDS  -x ' + minLon + ' -X ' +
+    requestUrl = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_017-TDS  -x ' + minLon + ' -X ' +
                                   maxLon + ' -y ' + minLat + ' -Y ' + maxLat + ' -t ' +
                                   startDate + ' -T ' + endDate + ' -v VHM0 -v VMDR -v VTM10 -q -o console')
 

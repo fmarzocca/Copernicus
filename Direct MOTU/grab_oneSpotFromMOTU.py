@@ -37,7 +37,6 @@ logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
 FROMEMAIL = "<your from address>"
 TOEMAIL = "<you-to-address"
 
-
 def exportJSON(Data):
     print(json.dumps(Data, separators=(',', ':')))
 
@@ -183,8 +182,8 @@ def prepareDataFromNC(ncFile):
     dates = num2date(time_array, units=t_units, calendar=t_cal)
     timeTable = fillTimeTable(dates)
 
-    lon_array = dataset.variables['lon'][:]
-    lat_array = dataset.variables['lat'][:]
+    lon_array = dataset.variables['longitude'][:]
+    lat_array = dataset.variables['latitude'][:]
     del dataset
     del time_array
     del dates
