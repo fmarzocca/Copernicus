@@ -56,6 +56,7 @@ def get_data(lat, lon):
 
     results = [[0] * totalsamples for _ in range(4)]  # initializza array 4xtotalSamples
 
+
     threads = []
     for kk in range(len(urls)):
         # We start one thread per url present.
@@ -105,11 +106,11 @@ def crawl(url, results, services, index):
 
     try:
         root = ET.parse(urlopen(url, timeout=20)).getroot()
-    except:
+    except (HTTPError, URLError) as e:
         results[1][index] = "n/a"
         results[2][index] = "n/a"
         results[3][index] = "n/a"
-        logging.warning("Can't get wave data: " + url )
+        logging.warning("Can't get wave data: " + url +" -- "+e.reason)
         return
 
     featInfo = root[6]
