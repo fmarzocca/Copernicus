@@ -5,7 +5,7 @@
 #
 # Python script to get OpeNDap forecasts from CMEMS and wind data from NOAA-GFS
 # 
-#  (C) Copyright 2017 - Fabio Marzocca - marzoccafabio@gmail.com
+#  (C) Copyright 2017-2018 - Fabio Marzocca - marzoccafabio@gmail.com
 # 
 #  License: GPL
 
@@ -29,7 +29,7 @@ LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = os.path.dirname(os.path.abspath(__file__)) + \
     "/log/" + 'grab_Copernicus.log'
 logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
-BASEURL = 'http://cmems-med-mfc.eu/thredds/dodsC/sv03-med-hcmr-wav-an-fc-h'
+BASEURL = 'http://cmems-med-mfc.eu/thredds/dodsC/sv04-med-hcmr-wav-an-fc-h'
 
 FROMEMAL = "<your-from-email>"
 TOEMAIL = "<your-to-email>"
@@ -62,15 +62,15 @@ def getDataStructure():
             foundtime = (foundtime[1].split(']')[0])
             dimensions["time"] = foundtime
             continue
-        if 'Float32 lat[lat = ' in header[x]:
-            foundlat = header[x].split('Float32 lat[lat = ', 1)
+        if 'Float32 latitude[latitude = ' in header[x]:
+            foundlat = header[x].split('Float32 latitude[latitude = ', 1)
             foundlat = (foundlat[1].split(']')[0])
-            dimensions['lat'] = foundlat
+            dimensions['latitude'] = foundlat
             continue
-        if 'Float32 lon[lon = ' in header[x]:
-            foundlon = header[x].split('Float32 lon[lon = ', 1)
+        if 'Float32 longitude[longitude = ' in header[x]:
+            foundlon = header[x].split('Float32 longitude[longitude = ', 1)
             foundlon = (foundlon[1].split(']')[0])
-            dimensions['lon'] = foundlon
+            dimensions['longitude'] = foundlon
     return dimensions
 
 
@@ -120,7 +120,7 @@ def getLatLongIdx(latdim, londim, spotLat, spotLon):
     latdim = str((int(latdim) - 1))
     londim = str((int(londim) - 1))
     # Latitude list
-    url = BASEURL + '.ascii?lat[0:1:' + latdim + ']'
+    url = BASEURL + '.ascii?latitude[0:1:' + latdim + ']'
     try:
         response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
@@ -151,7 +151,7 @@ def getLatLongIdx(latdim, londim, spotLat, spotLon):
     del latitudes
 
     # Longitude list
-    url = BASEURL + '.ascii?lon[0:1:' + londim + ']'
+    url = BASEURL + '.ascii?longitude[0:1:' + londim + ']'
     try:
         response = urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
@@ -241,10 +241,15 @@ def fillArray(numElements, data, variable, decimals):
                 # prendi solo il dato dopo la virgola
                 element = data[start + 1 + k].split(', ')
                 element = float(element[1])  # converti in float
-                if element == 1e20:
+                if element == -32767:
                     return False
+                # scale factor
+                if variable == 'VMDR':
+                    element = float((element)*0.01)+180
+                else:
+                    element = float(element*0.001)
                 element = "{:.{x}f}".format(
-                    element, x=decimals)  # riduci a 2 decimali
+                    element, x=decimals)  # riduci a 2 o 0 decimali
                 element = str(element)
                 temp.append(element)
             return temp
@@ -388,8 +393,8 @@ def main_entry(spotLat,spotLon):
         sys.exit()
 
     # get the coordinates for the spot in the table
-    minLon, minLat = getLatLongIdx(dimensions['lat'], dimensions[
-                                   'lon'], spotLat, spotLon)
+    minLon, minLat = getLatLongIdx(dimensions['latitude'], dimensions[
+                                   'longitude'], spotLat, spotLon)
     if(minLon == False or minLat == False):
         #print("Error getting LatLon indexes")
         sys.exit()
@@ -438,4 +443,4 @@ if __name__ == '__main__':
 
 
 
-# http://cmems-med-mfc.eu/thredds/dodsC/sv03-med-hcmr-wav-an-fc-h.ascii?VHM0[9862:1:9935][284:1:284][720:1:720],VTPK[9862:1:9935][284:1:284][720:1:720],VMDR[9862:1:9935][284:1:284][720:1:720]
+# http://cmems-med-mfc.eu/thredds/dodsC/sv04-med-hcmr-wav-an-fc-h.ascii?VHM0[9862:1:9935][284:1:284][720:1:720],VTPK[9862:1:9935][284:1:284][720:1:720],VMDR[9862:1:9935][284:1:284][720:1:720]
