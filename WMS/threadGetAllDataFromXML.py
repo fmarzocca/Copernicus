@@ -25,6 +25,8 @@ logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
 
 path = os.path.dirname(os.path.abspath(__file__))
 MOTUCLIENT = '$HOME/motu-client/motu-client.py'
+FROMEMAL = "......."
+TOEMAIL = "......."
 
 
 def readData():
@@ -33,7 +35,8 @@ def readData():
                              'user'], cfg.mysql['passwd'], cfg.mysql['db'])
     except:
         print("Error: unable to connect to DB")
-        return
+        send_notice_mail("Error: unable to connect to DB")
+        return False
     cursor = db.cursor()
     sql = "SELECT * FROM spots WHERE 1"
     try:
@@ -41,8 +44,9 @@ def readData():
         results = cursor.fetchall()
     except:
         print("Error: unable to fetch data from Database")
+        send_notice_mail("Error: unable to fetch data from Database")
         db.close()
-        return
+        return False
     db.close()
     # id = line[5]
     # Lat = line[4]
@@ -71,6 +75,7 @@ def getLastDate():
         root = ET.parse(urlopen(url, timeout=20)).getroot()
     except:
         logging.warning("Can't get Capabilities for last date: "+url)
+        send_notice_mail("Can't get Capabilities for last date: "+url)
         sys.exit()
         return
 
@@ -103,6 +108,30 @@ def pingMOTUserver():
 
     logging.warning("Successfully processed MOTU request")
 
+def send_notice_mail(text):
+    from email.mime.text import MIMEText
+
+    FROM = FROMEMAL
+    TO = TOEMAIL
+
+    SUBJECT = "MeteoSurf notice (CMEMS from XML)!"
+
+    TEXT = text
+    SENDMAIL = "/usr/sbin/sendmail"
+    # Prepare actual message
+    msg = MIMEText(text)
+    msg["From"] = FROM
+    msg["To"] = TO
+    msg["Subject"] = SUBJECT
+
+    # Send the mail
+    import os
+
+    p = os.popen("%s -t -i" % SENDMAIL, "w")
+    p.write(msg.as_string())
+    status = p.close()
+    if status:
+        logging.warning("Sendmail exit status ", status)
 
 ###############################
 
@@ -115,18 +144,18 @@ if __name__ == '__main__':
     dbData = readData()
     if not dbData:
         sys.exit()
-    # i=0
-    # threads=[]
+    #i=0
+    #threads=[]
     for line in dbData:
         saveSpot(line[4], line[3], line[5])
         #process = Thread(target=saveSpot, args=[line[4],line[3],line[5]])
-        # process.start()
-        # threads.append(process)
+        #process.start()
+        #threads.append(process)
         #i += 1
-        # if i>50:
-        #	for process in threads:
-        #		process.join()
-        #	i = 0
+        #if i>10:
+            #for process in threads:
+                #process.join()
+            #i = 0
 
     # write update date/time
     now = datetime.now()

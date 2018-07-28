@@ -3,7 +3,7 @@
 #
 # Python script to get XML forecasts from CMEMS and wind data from NOAA-GFS
 # 
-#  (C) Copyright 2017 - Fabio Marzocca - marzoccafabio@gmail.com
+#  (C) Copyright 2017-2018 - Fabio Marzocca - marzoccafabio@gmail.com
 # 
 #  License: GPL
 
@@ -22,6 +22,8 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
+FROMEMAL = "......."
+TOEMAIL = "......."
 LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = os.path.dirname(os.path.abspath(__file__)) + \
     "/log/" + 'grab_X_Copernicus.log'
@@ -111,6 +113,7 @@ def crawl(url, results, services, index):
         results[2][index] = "n/a"
         results[3][index] = "n/a"
         logging.warning("Can't get wave data: " + url +" -- "+e.reason)
+        send_notice_mail("Can't get wave data: " + url +" -- "+e.reason)
         return
 
     featInfo = root[6]
@@ -202,6 +205,7 @@ def getTotalSamples():
     except IOError as e:
         errno, strerror = e.args
         logging.warning("Can't get lastdate: I/O error({0}): {1}".format(errno,strerror) )
+        send_notice_mail("Can't get lastdate: I/O error({0}): {1}".format(errno,strerror) )
         return False
     lastDate = lastDatefile.readline()
     lastDatefile.close
@@ -209,6 +213,7 @@ def getTotalSamples():
         lastDateDate = datetime.strptime(lastDate,'%Y-%m-%dT%H:%M:%S.%fZ')
     except (ValueError, TypeError):
         loggin.warning("Last date type/value error! This is what I read from file: ",lastDate)
+        send_notice_mail("Last date type/value error! This is what I read from file: ",lastDate)
         return False
     today = datetime.now().replace(hour=00, minute=00, second=00, microsecond=0)
     diff = (lastDateDate-today).total_seconds()
@@ -219,6 +224,31 @@ def getTotalSamples():
 
 def exportJSON(Data):
     print(json.dumps(Data, separators=(',', ':')))
+
+def send_notice_mail(text):
+    from email.mime.text import MIMEText
+
+    FROM = FROMEMAL
+    TO = TOEMAIL
+
+    SUBJECT = "MeteoSurf notice (CMEMS from XML)!"
+
+    TEXT = text
+    SENDMAIL = "/usr/sbin/sendmail"
+    # Prepare actual message
+    msg = MIMEText(text)
+    msg["From"] = FROM
+    msg["To"] = TO
+    msg["Subject"] = SUBJECT
+
+    # Send the mail
+    import os
+
+    p = os.popen("%s -t -i" % SENDMAIL, "w")
+    p.write(msg.as_string())
+    status = p.close()
+    if status:
+        logging.warning("Sendmail exit status ", status)
 
 ###############################################
 
