@@ -23,7 +23,7 @@ except ImportError:
     import xml.etree.ElementTree as ET
 
 FROMEMAL = "......."
-TOEMAIL = "......."
+TOEMAIL = "........"
 LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = os.path.dirname(os.path.abspath(__file__)) + \
     "/log/" + 'grab_X_Copernicus.log'
@@ -199,15 +199,17 @@ def getWindData(timeTable, spotLat, spotLon):
 
     return (intensitaVento, direzioneVento)
 
-def getTotalSamples():
+def getTotalSamples():             
+    pathname = os.path.dirname(sys.argv[0])        
+    fullpath = os.path.abspath(pathname)
     try:
-        lastDatefile = open("./CMEMS-lastdate.txt","r")
+        lastDatefile = open(fullpath+"/CMEMS-lastdate.txt","r")
     except IOError as e:
         errno, strerror = e.args
         logging.warning("Can't get lastdate: I/O error({0}): {1}".format(errno,strerror) )
-        send_notice_mail("Can't get lastdate: I/O error({0}): {1}".format(errno,strerror) )
         return False
     lastDate = lastDatefile.readline()
+
     lastDatefile.close
     try:
         lastDateDate = datetime.strptime(lastDate,'%Y-%m-%dT%H:%M:%S.%fZ')
