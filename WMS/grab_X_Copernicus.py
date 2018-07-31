@@ -22,8 +22,8 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-FROMEMAL = "......."
-TOEMAIL = "........"
+FROMEMAL = "........"
+TOEMAIL = "......."
 LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = os.path.dirname(os.path.abspath(__file__)) + \
     "/log/" + 'grab_X_Copernicus.log'
@@ -106,14 +106,20 @@ def get_data(lat, lon):
 def crawl(url, results, services, index):
     options = {'VHM0': 1, 'VTM10': 2, 'VMDR': 3, }
 
+    # Prefill results
+    results[1][index] = "n/a"
+    results[2][index] = "n/a"
+    results[3][index] = "n/a"
+
     try:
         root = ET.parse(urlopen(url, timeout=20)).getroot()
     except (HTTPError, URLError) as e:
-        results[1][index] = "n/a"
-        results[2][index] = "n/a"
-        results[3][index] = "n/a"
         logging.warning("Can't get wave data: " + url +" -- "+e.reason)
         send_notice_mail("Can't get wave data: " + url +" -- "+e.reason)
+        return
+    except socket.timeout as e:
+        logging.warning("Can't get wave data: " + url +" -- TIMEOUT")
+        send_notice_mail("Can't get wave data: " + url +" -- TIMEOUT")
         return
 
     featInfo = root[6]
