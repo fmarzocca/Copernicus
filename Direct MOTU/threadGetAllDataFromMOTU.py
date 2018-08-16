@@ -23,9 +23,12 @@ import os
 from threading import Thread, Lock
 from datetime import datetime, timedelta
 import logging
-import urllib.request
+import urllib.request 
 from urllib.error import URLError, HTTPError
 import shutil
+from time import strftime
+import socket
+import re
 
 
 path = os.path.dirname(os.path.abspath(__file__))
@@ -40,8 +43,8 @@ MOTUCLIENT = '$HOME/motu-client/motu-client.py'
 OUTDIR = "/tmp/"
 OUTFILE = 'CMEMS_006_017.nc'
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
-FROMEMAIL = "<your from address>"
-TOEMAIL = "<you-to-address"
+FROMEMAIL = "<your-from-address>"
+TOEMAIL = "<your-to-address"
 
 
 def getNCFile(minLat, minLon, maxLat, maxLon):
@@ -112,11 +115,61 @@ def saveSpot(lat, lon, id):
     with open(FORECAST_FILEPATH + str(id) + ".json", 'w') as f:
         f.write(output)
 
+def write_html(data):  # string
+    file = open('/tmp/page_capab_prev.txt','w')
+    file.write("".join(data))
+    file.close()
+
+def write_html2(data):  # string
+    file = open('/tmp/page_capab_now.txt','w')
+    file.write("".join(data))
+    file.close()
+
+def read_html():
+    lines=""
+    try:
+        lines = tuple(open('/tmp/page_capab_prev.txt', 'r'))
+    except:
+        return ("")
+    return lines
+
+def read_html2():
+    lines=""
+    try:
+        lines = tuple(open('/tmp/page_capab_now.txt', 'r'))
+    except:
+        return ("")
+    return lines
+
+def todayProductionUpdate():
+    url = "http://nrt.cmems-du.eu/thredds/wms/sv04-med-hcmr-wav-an-fc-h?service=WMS&version=1.3.0&request=GetCapabilities"
+    try:
+        response = urllib.request.urlopen(url, timeout=30)
+    except (HTTPError, URLError) as e:
+        logging.warning("Can't get Capabilities to check update: " + str(e.reason))
+        return False
+    except socket.timeout as e:
+        logging.warning("Can't get Capabilities to check update: TIMEOUT")
+        return False
+    data = response.read()      # a `bytes` object
+    textdata = data.decode('utf-8')
+    textdata = re.sub('<[^<]+>', "", textdata)
+    write_html2(textdata)
+    new_html = read_html2()
+    old_html = read_html()
+    if new_html == old_html:
+        #print('Nothing has changed')
+        return False
+    else:
+        #print('Something has changed on: ',strftime("%Y-%m-%d %H:%M:%S"))
+        write_html(new_html)
+        logging.warning("Copernicus WMS Capabilities updated on: "+strftime("%Y-%m-%d %H:%M:%S"))
+        return True
 
 def send_notice_mail(text):
     from email.mime.text import MIMEText
 
-    FROM = FROMEMAL
+    FROM = FROMEMAIL
     TO = TOEMAIL
 
     SUBJECT = "MeteoSurf notice (CMEMS from MOTU)!"
@@ -147,6 +200,9 @@ if __name__ == '__main__':
     minLat = '30'
     maxLat = "46"
 
+    #Check if WMS capabilities have been updated
+    if todayProductionUpdate() == False:
+        sys.exit()
 
     # get main CMEMS NC file
     if getNCFile(minLat, minLon, maxLat,maxLon) == False:
