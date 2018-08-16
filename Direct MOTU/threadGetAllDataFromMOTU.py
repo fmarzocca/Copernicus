@@ -43,8 +43,8 @@ MOTUCLIENT = '$HOME/motu-client/motu-client.py'
 OUTDIR = "/tmp/"
 OUTFILE = 'CMEMS_006_017.nc'
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
-FROMEMAIL = "<your-from-address>"
-TOEMAIL = "<your-to-address"
+FROMEMAIL = "<your-from-email>"
+TOEMAIL = "<your-to-email>"
 
 
 def getNCFile(minLat, minLon, maxLat, maxLon):
@@ -115,34 +115,26 @@ def saveSpot(lat, lon, id):
     with open(FORECAST_FILEPATH + str(id) + ".json", 'w') as f:
         f.write(output)
 
-def write_html(data):  # string
-    file = open('/tmp/page_capab_prev.txt','w')
+def write_html(path,data):  # string
+    file = open(path,'w')
     file.write("".join(data))
     file.close()
 
-def write_html2(data):  # string
-    file = open('/tmp/page_capab_now.txt','w')
-    file.write("".join(data))
-    file.close()
 
-def read_html():
+def read_html(path):
     lines=""
     try:
-        lines = tuple(open('/tmp/page_capab_prev.txt', 'r'))
+        lines = tuple(open(path, 'r'))
     except:
         return ("")
     return lines
 
-def read_html2():
-    lines=""
-    try:
-        lines = tuple(open('/tmp/page_capab_now.txt', 'r'))
-    except:
-        return ("")
-    return lines
 
 def todayProductionUpdate():
     url = "http://nrt.cmems-du.eu/thredds/wms/sv04-med-hcmr-wav-an-fc-h?service=WMS&version=1.3.0&request=GetCapabilities"
+    prevPage = "/tmp/page_capab_prev.txt"
+    nowPage = '/tmp/page_capab_now.txt'
+
     try:
         response = urllib.request.urlopen(url, timeout=30)
     except (HTTPError, URLError) as e:
@@ -154,15 +146,17 @@ def todayProductionUpdate():
     data = response.read()      # a `bytes` object
     textdata = data.decode('utf-8')
     textdata = re.sub('<[^<]+>', "", textdata)
-    write_html2(textdata)
-    new_html = read_html2()
-    old_html = read_html()
+    
+    write_html(nowPage,textdata)
+    new_html = read_html(nowPage)
+    old_html = read_html(prevPage)
+
     if new_html == old_html:
         #print('Nothing has changed')
         return False
     else:
         #print('Something has changed on: ',strftime("%Y-%m-%d %H:%M:%S"))
-        write_html(new_html)
+        write_html(prevPage,new_html)
         logging.warning("Copernicus WMS Capabilities updated on: "+strftime("%Y-%m-%d %H:%M:%S"))
         return True
 
