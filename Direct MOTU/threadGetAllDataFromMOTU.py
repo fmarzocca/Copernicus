@@ -115,50 +115,65 @@ def saveSpot(lat, lon, id):
     with open(FORECAST_FILEPATH + str(id) + ".json", 'w') as f:
         f.write(output)
 
-def write_html(path,data):  # string
-    file = open(path,'w')
-    file.write("".join(data))
-    file.close()
 
-
-def read_html(path):
-    lines=""
+def updateDBDate():
     try:
-        lines = tuple(open(path, 'r'))
+        db = pymysql.connect(cfg.mysql['host'], cfg.mysql[
+                             'user'], cfg.mysql['passwd'], cfg.mysql['db'])
+    except MySQLError as e:
+        logging.warning("Error: unable to connect to DB ")
+        send_notice_mail("Error: unable to connect to DB ")
+        return
+    cursor = db.cursor()
+    sql = "UPDATE service SET updatedOn = CURRENT_DATE"
+    try:
+        cursor.execute(sql)
+        db.commit()
     except:
-        return ("")
-    return lines
+        logging.warning("Error: unable to update data in Database")
+        send_notice_mail("Error: unable to update data in Database")
+    db.close()
 
+def isDbUpdated():
+    try:
+        db = pymysql.connect(cfg.mysql['host'], cfg.mysql[
+                             'user'], cfg.mysql['passwd'], cfg.mysql['db'])
+    except MySQLError as e:
+        logging.warning("Error: unable to connect to DB ")
+        send_notice_mail("Error: unable to connect to DB ")
+        return
+    cursor = db.cursor()
+    sql = "SELECT updatedOn FROM service"
+    try:
+        cursor.execute(sql)
+        dateDB = cursor.fetchone()[0]
+    except:
+        logging.warning("Error: unable to fetch updatedOn from Database")
+        send_notice_mail("Error: unable to fetch updatedOn from Database")
+        db.close()
+        return False
+    now = datetime.now().date().strftime('%Y-%m-%d')
+    if now == dateDB:
+        return True
+    else:
+        return False
 
 def todayProductionUpdate():
-    url = "http://nrt.cmems-du.eu/thredds/wms/sv04-med-hcmr-wav-an-fc-h?service=WMS&version=1.3.0&request=GetCapabilities"
-    prevPage = "/tmp/page_capab_prev.txt"
-    nowPage = '/tmp/page_capab_now.txt'
 
-    try:
-        response = urllib.request.urlopen(url, timeout=30)
-    except (HTTPError, URLError) as e:
-        logging.warning("Can't get Capabilities to check update: " + str(e.reason))
-        return False
-    except socket.timeout as e:
-        logging.warning("Can't get Capabilities to check update: TIMEOUT")
-        return False
-    data = response.read()      # a `bytes` object
-    textdata = data.decode('utf-8')
-    textdata = re.sub('<[^<]+>', "", textdata)
-    
-    write_html(nowPage,textdata)
-    new_html = read_html(nowPage)
-    old_html = read_html(prevPage)
+    requestEndDateCoverage = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_017-TDS  -D -q -o console | grep "timeCoverage" ')
 
-    if new_html == old_html:
-        #print('Nothing has changed')
+    if 'timeCoverage msg="OK"' not in requestEndDateCoverage:
+        logging.warning('Processing MOTU EndDateCoverage request failed!')
         return False
-    else:
-        #print('Something has changed on: ',strftime("%Y-%m-%d %H:%M:%S"))
-        write_html(prevPage,new_html)
-        logging.warning("Copernicus WMS Capabilities updated on: "+strftime("%Y-%m-%d %H:%M:%S"))
+ 
+    parsedDate = requestEndDateCoverage[requestEndDateCoverage.find('end=')+4:requestEndDateCoverage.find('start=')]
+    parsedDate = parsedDate.strip().replace('"','')
+    parsedDate=parsedDate[0:10]
+    dateInterval = (datetime.strptime(parsedDate,"%Y-%m-%d").date()-datetime.now().date()).days
+    if dateInterval >= 4:
         return True
+    else:
+        return False
 
 def send_notice_mail(text):
     from email.mime.text import MIMEText
@@ -194,9 +209,14 @@ if __name__ == '__main__':
     minLat = '30'
     maxLat = "46"
 
-    #Check if WMS capabilities have been updated
+    # Check if we have already updated for today,
+    # if not, check if a Product's update is already available
+    if isDbUpdated() == True:
+        sys.exit()
+    logging.warning("Spots DB needs an update!")
     if todayProductionUpdate() == False:
         sys.exit()
+    logging.warning("Checked Product update available. Proceeding with update.")
 
     # get main CMEMS NC file
     if getNCFile(minLat, minLon, maxLat,maxLon) == False:
@@ -223,6 +243,9 @@ if __name__ == '__main__':
             for process in threads:
                 process.join()
             i = 0
+    # update DB updatedOn
+    updateDBDate()
+
     # write update date/time
     now = datetime.now()
     now = now.strftime("%Y-%m-%d %H:%M")
