@@ -13,6 +13,7 @@
 # ./grab_oneSpotFromMOTU.py <lat> <lon> <path-to-NC-file>
 #
 #
+# v.2 added: dataset.set_auto_mask(False)
 
 
 import netCDF4
@@ -172,6 +173,7 @@ def prepareDataFromNC(ncFile):
         send_notice_mail("Can't assign dataset from " +ncFile)
         sys.exit()
 
+    dataset.set_auto_mask(False)
     vhm0 = dataset.variables['VHM0']
     vmdr = dataset.variables['VMDR']
     vtm10 = dataset.variables['VTM10']
