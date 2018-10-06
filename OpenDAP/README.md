@@ -1,3 +1,5 @@
+# NOTE: these script are outdated and kept here only for documentation purposes
+
 # Download Data from the OpeNDAP service
 
 These scripts access Copernicus' [OpeNDAP](http://cmems-med-mfc.eu/thredds/dodsC/sv03-med-hcmr-wav-an-fc-h.html) service to get the spots data.

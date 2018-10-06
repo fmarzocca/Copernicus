@@ -1,3 +1,5 @@
+# NOTE: these script are outdated and kept here only for documentation purposes
+
 # Download Data from the WMS service
 
 These scripts access Copernicus' [WMS](http://cmems-med-mfc.eu/thredds/wms/sv03-med-hcmr-wav-an-fc-h?REQUEST=GetCapabilities&service=WMS) service to get the spots data.
