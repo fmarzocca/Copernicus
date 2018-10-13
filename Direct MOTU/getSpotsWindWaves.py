@@ -161,7 +161,7 @@ def getWavesData(spotLat, spotLon):
 
 def getWindData(spotLat, spotLon):
     if (windValid == False):
-        return (np.full((1, 36), "n/a").tolist(), np.full((1, 36), "n/a").tolist())
+        return (np.full((1, 36), "n/a").tolist()[0], np.full((1, 36), "n/a").tolist()[0])
 
     if spotLon < 0:
         spotLon = 360 + spotLon
