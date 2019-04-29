@@ -125,7 +125,7 @@ def testOneShot(ncfile):
 
     wDir = wDir[0,:,:]
     
-    map.quiver(x[points],y[points],np.cos(np.deg2rad(wDir[points])),np.sin(np.deg2rad(wDir[points])),
+    map.quiver(x[points],y[points],np.cos(np.deg2rad(270-wDir[points])),np.sin(np.deg2rad(270-wDir[points])),
     	edgecolor='lightgray', minshaft=4,  width=0.007, headwidth=3., headlength=4., linewidth=.5)
 
     plt.show()
@@ -163,7 +163,7 @@ def getMaps(ncfile):
         map.pcolormesh(x, y, waveH, cmap=my_cmap, norm=matplotlib.colors.LogNorm(vmin=0.07, vmax=4.,clip=True))
         # waves direction
         wDir = myCMEMSdata.VMDR.values[i, :, :]
-        map.quiver(x[points],y[points],np.cos(np.deg2rad(wDir[points])),np.sin(np.deg2rad(wDir[points])),
+        map.quiver(x[points],y[points],np.cos(np.deg2rad(270-wDir[points])),np.sin(np.deg2rad(270-wDir[points])),
             edgecolor='lightgray', minshaft=4,  width=0.007, headwidth=3., headlength=4., linewidth=.5)
         # save plot
         filename = pd.to_datetime(myCMEMSdata.time[i].values).strftime("%Y-%m-%d_%H")
