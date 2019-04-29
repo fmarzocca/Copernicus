@@ -5,7 +5,7 @@
 # Python script to get CMEMS data from motu client
 #      and wind NOAA data from ERDDAP
 #
-#  (C) Copyright 2018 - Fabio Marzocca - marzoccafabio@gmail.com
+#  (C) Copyright 2018-2019 - Fabio Marzocca - marzoccafabio@gmail.com
 #
 #  License: GPL
 #
@@ -15,7 +15,7 @@
 #
 #
 # v.1.0.0 - october 2018
-
+# v.2.0.0 - april 2019 
 
 import pymysql
 from pymysql import MySQLError
@@ -46,21 +46,25 @@ logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
 
 MOTUCLIENT = '$HOME/motu-client/motu-client.py'
 OUTDIR = "/tmp/"
-OUTCMEMSFILE = ''
 OUTNOAAFILE = ''
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
-FROMEMAIL = "<your-from-email>"
-TOEMAIL = "<your-to-email"
-
+FROMEMAIL = "Root <fm@fabiomarzocca.com>"
+TOEMAIL = "marzoccafabio@gmail.com"
+endDate=""
 windValid = True
+NC_FILE = "/tmp/msCMEMSdaily.nc"
+
 
 def getNCFiles(minLat, minLon, maxLat, maxLon):
+    global endDate
     startDate = datetime.utcnow().strftime("%Y-%m-%d")
-    endDate = (datetime.utcnow() + timedelta(days=4)).strftime("%Y-%m-%d")
+    endNOAAdate = getNOAAlastDate()
+    if endNOAAdate==False:
+        endNOAAdate = (datetime.now().date()+timedelta(days=6)).isoformat() + "T12:00:00Z"
 
     # processing: send request to MOTU to get the file url
     logging.warning("Start processing MOTU request")
-    requestUrl = subprocess.getoutput(MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_017-TDS  -x ' + minLon + ' -X ' +
+    requestUrl = subprocess.getoutput(MOTUCLIENT +' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_017-TDS  -x ' + minLon + ' -X ' +
                                       maxLon + ' -y ' + minLat + ' -Y ' + maxLat + ' -t ' +
                                       startDate + ' -T ' + endDate + ' -v VHM0 -v VMDR -v VTM10 -q -o console')
 
@@ -71,11 +75,15 @@ def getNCFiles(minLat, minLon, maxLat, maxLon):
 
     logging.warning("Successfully processed MOTU request")
 
+    #delete old nc file
+    if (os.path.isfile(NC_FILE)):
+        os.remove(NC_FILE)
+
     # downloading CMEMS NC file
     myurl = "http://" + requestUrl.split("http://")[1]
     try:
         logging.warning("Start downloading CMEMS NC file")
-        with urllib.request.urlopen(myurl) as response, open(OUTDIR + OUTCMEMSFILE, 'wb') as out_file:
+        with urllib.request.urlopen(myurl) as response, open(NC_FILE, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
     except (HTTPError, URLError) as e:
         logging.warning("Can't download CMEMS NC file: " +
@@ -84,13 +92,13 @@ def getNCFiles(minLat, minLon, maxLat, maxLon):
                          myurl + " -> " + str(e.reason))
         return False
 
-    logging.warning("CMEMS NC File: " + OUTDIR + OUTCMEMSFILE +
+    logging.warning("CMEMS NC File: " + NC_FILE +
                     " successfully dowloaded.")
 
     # Download NOAA wind NC file
-    NOAAurl = "http://oos.soest.hawaii.edu/erddap/griddap/NCEP_Global_Best.nc?ugrd10m[(" + startDate + "T00:00:00Z):1:(" + endDate + "T09:00:00Z)][(" + minLat + \
+    NOAAurl = "http://oos.soest.hawaii.edu/erddap/griddap/NCEP_Global_Best.nc?ugrd10m[(" + startDate + "T00:00:00Z):1:(" + endNOAAdate + ")][(" + minLat + \
         "):1:(" + maxLat + ")][(0):1:(359.5)],vgrd10m[(" + startDate + "T00:00:00Z):1:(" + \
-              endDate + "T09:00:00Z)][(" + minLat + \
+              endNOAAdate + ")][(" + minLat + \
         "):1:(" + maxLat + ")][(0):1:(359.5)]"
 
     try:
@@ -107,6 +115,18 @@ def getNCFiles(minLat, minLon, maxLat, maxLon):
 
     return True
 
+def getNOAAlastDate():
+    url = 'http://oos.soest.hawaii.edu/erddap/griddap/NCEP_Global_Best.json?time[last]'
+    try:
+        res=urllib.request.urlopen(url)
+    except (HTTPError, URLError) as e:
+        logging.warning("Can't get NOAA lastTime: " + str(e.reason))
+        send_notice_mail("Can't get NOAA lastTime: " +  str(e.reason))
+        return False
+    data = json.loads(res.read().decode('utf-8'))
+    lastTime = data['table']['rows'][0][0]
+    return lastTime
+
 def initDataArrays():
     global myNOAAdata, myCMEMSdata, windValid, timeTable
 
@@ -120,14 +140,15 @@ def initDataArrays():
 
     #Copernicus
     try:
-        myCMEMSdata = xr.open_dataset(OUTDIR+OUTCMEMSFILE)
+        myCMEMSdata = xr.open_dataset(NC_FILE).resample(time='3H').reduce(np.mean)
+        
     except (OSError, IOError, RuntimeError) as e:
         logging.warning("Can't initialize CMEMS dataset - " + " " + str(e))
         send_notice_mail("Can't initialize CMEMS dataset - " + " " + str(e))
         sys.exit()
 
     # time array
-    dt = pd.to_datetime(myCMEMSdata.time[0::3].values)
+    dt = pd.to_datetime(myCMEMSdata.time.values)
     a0 = [str(i.date()) for i in dt]
     a1 = [str(i.time())[0:2] for i in dt]
     timeTable = np.vstack((a0, a1))
@@ -136,21 +157,21 @@ def initDataArrays():
 def getWavesData(spotLat, spotLon):
     x = np.abs(myCMEMSdata.longitude.values - spotLon).argmin()
     y = np.abs(myCMEMSdata.latitude.values - spotLat).argmin()
-    waveH = myCMEMSdata.VHM0.values[0::3,y,x]
+    waveH = myCMEMSdata.VHM0.values[0::1,y,x]
     waveH = waveH.tolist()
     waveHeight =[]
     for item in waveH:
         waveHeight.append("%.2f"%item)
     del waveH
 
-    waveD = myCMEMSdata.VMDR.values[0::3,y,x]
+    waveD = myCMEMSdata.VMDR.values[0::1,y,x]
     waveD = waveD.tolist()
     waveDirection =[]
     for item in waveD:
         waveDirection.append(int(item))
     del waveD
 
-    waveP = myCMEMSdata.VTM10.values[0::3,y,x]
+    waveP = myCMEMSdata.VTM10.values[0::1,y,x]
     waveP = waveP.tolist()
     wavePeriod =[]
     for item in waveP:
@@ -278,7 +299,7 @@ def isDbUpdated():
 
 
 def todayProductionUpdate():
-
+    global endDate
     requestEndDateCoverage = subprocess.getoutput(
         MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_017-TDS  -D -q -o console | grep "timeCoverage" ')
 
@@ -290,11 +311,15 @@ def todayProductionUpdate():
         'end=') + 4:requestEndDateCoverage.find('start=')]
     parsedDate = parsedDate.strip().replace('"', '')
     parsedDate = parsedDate[0:10]
+    
+    endDate = parsedDate
     dateInterval = (datetime.strptime(
         parsedDate, "%Y-%m-%d").date() - datetime.now().date()).days
+
     if dateInterval >= 4:
         return True
     else:
+        logging.warning('Coverage date interval <4 days!')
         return False
 
 
@@ -332,7 +357,6 @@ if __name__ == '__main__':
     minLat = '30'
     maxLat = "46"
 
-    OUTCMEMSFILE = next(tempfile._get_candidate_names()) + ".nc"
     OUTNOAAFILE = next(tempfile._get_candidate_names()) + ".nc"
 
     # Check if we have already updated for today,
@@ -371,8 +395,6 @@ if __name__ == '__main__':
     g.write(now)
     g.close()
 
-    # delete nc files
-    if (os.path.isfile(OUTDIR+OUTCMEMSFILE)):
-        os.remove(OUTDIR+OUTCMEMSFILE)
+    # delete NOAA nc file
     if (os.path.isfile(OUTDIR+OUTNOAAFILE)):
         os.remove(OUTDIR+OUTNOAAFILE)
