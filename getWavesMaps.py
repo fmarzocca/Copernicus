@@ -39,13 +39,13 @@ path = os.path.dirname(os.path.abspath(__file__))
 LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = path + "/log/" + 'getWavesMaps.log'
 logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
-FROMEMAIL = "Root <fm@fabiomarzocca.com>"
-TOEMAIL = "marzoccafabio@gmail.com"
+FROMEMAIL = "<YOUR_FROM_EMAIL>"
+TOEMAIL = "<YOUR_TO_EMAIL>"
 
 
 TEMPDIR = "/tmp/CMEMSmaps/"
 NC_FILE= "/tmp/msCMEMSdaily.nc"
-MOTUCLIENT = '$HOME/motu-client/motu-client.py'
+MOTUCLIENT = '/usr/local/bin/motuclient'
 
 
 def getNCFiles(minLat, minLon, maxLat, maxLon):

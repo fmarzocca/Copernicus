@@ -44,12 +44,12 @@ LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = path + "/log/" + 'getSpotsWindWaves.log'
 logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
 
-MOTUCLIENT = '$HOME/motu-client/motu-client.py'
+MOTUCLIENT = '/usr/local/bin/motuclient'
 OUTDIR = "/tmp/"
 OUTNOAAFILE = ''
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
-FROMEMAIL = "Root <fm@fabiomarzocca.com>"
-TOEMAIL = "marzoccafabio@gmail.com"
+FROMEMAIL = "<YOUR_FROM_EMAIL>"
+TOEMAIL = "<YOUR_TO_EMAIL>"
 endDate=""
 windValid = True
 NC_FILE = "/tmp/msCMEMSdaily.nc"
