@@ -96,7 +96,7 @@ def getNCFiles(minLat, minLon, maxLat, maxLon):
                     " successfully dowloaded.")
 
     # Download NOAA wind NC file
-    NOAAurl = "http://oos.soest.hawaii.edu/erddap/griddap/NCEP_Global_Best.nc?ugrd10m[(" + startDate + "T00:00:00Z):1:(" + endNOAAdate + ")][(" + minLat + \
+    NOAAurl = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best.nc?ugrd10m[(" + startDate + "T00:00:00Z):1:(" + endNOAAdate + ")][(" + minLat + \
         "):1:(" + maxLat + ")][(0):1:(359.5)],vgrd10m[(" + startDate + "T00:00:00Z):1:(" + \
               endNOAAdate + ")][(" + minLat + \
         "):1:(" + maxLat + ")][(0):1:(359.5)]"
@@ -116,7 +116,7 @@ def getNCFiles(minLat, minLon, maxLat, maxLon):
     return True
 
 def getNOAAlastDate():
-    url = 'http://oos.soest.hawaii.edu/erddap/griddap/NCEP_Global_Best.json?time[last]'
+    url = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best.json?time[last]'
     try:
         res=urllib.request.urlopen(url)
     except (HTTPError, URLError) as e:
