@@ -16,6 +16,7 @@
 #
 # v.1.0.0 - october 2018
 # v.2.0.0 - april 2019 
+# v.2.0.1 - feb. 2020 - new NOAA server
 
 import pymysql
 from pymysql import MySQLError
@@ -34,8 +35,10 @@ import numpy as np
 import tempfile
 import math
 import json
+import warnings
 
 
+warnings.filterwarnings(action='ignore', category=FutureWarning, module='xarray')
 path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, path + '/db/')
 import dbaseconfig as cfg
@@ -48,8 +51,8 @@ MOTUCLIENT = '/usr/local/bin/motuclient'
 OUTDIR = "/tmp/"
 OUTNOAAFILE = ''
 FORECAST_FILEPATH = path + '/CMEMS-NOAA/'
-FROMEMAIL = "<YOUR_FROM_EMAIL>"
-TOEMAIL = "<YOUR_TO_EMAIL>"
+FROMEMAIL = "Root <fm@fabiomarzocca.com>"
+TOEMAIL = "marzoccafabio@gmail.com"
 endDate=""
 windValid = True
 NC_FILE = "/tmp/msCMEMSdaily.nc"
@@ -303,14 +306,15 @@ def todayProductionUpdate():
     requestEndDateCoverage = subprocess.getoutput(
         MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_017-TDS  -D -q -o console | grep "timeCoverage" ')
 
-    if 'timeCoverage msg="OK"' not in requestEndDateCoverage:
+    if 'msg="OK"' not in requestEndDateCoverage:
         logging.warning('Processing MOTU EndDateCoverage request failed!')
+        send_notice_mail('Processing MOTU EndDateCoverage request failed!')
         return False
 
-    parsedDate = requestEndDateCoverage[requestEndDateCoverage.find(
-        'end=') + 4:requestEndDateCoverage.find('start=')]
-    parsedDate = parsedDate.strip().replace('"', '')
-    parsedDate = parsedDate[0:10]
+    
+    requestEndDateCoverage = requestEndDateCoverage.strip().replace('"', '')
+    b = requestEndDateCoverage.find('end=')+4
+    parsedDate = requestEndDateCoverage[b:b+10]
     
     endDate = parsedDate
     dateInterval = (datetime.strptime(

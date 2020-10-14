@@ -33,14 +33,19 @@ import subprocess
 import urllib.request
 from urllib.error import URLError, HTTPError
 from time import strftime
+import warnings
+import gc
+
+
+warnings.filterwarnings(action='ignore', category=FutureWarning, module='xarray')
 
 path = os.path.dirname(os.path.abspath(__file__))
 
 LOGFORMAT = '%(asctime)s - %(message)s'
 LOGFILE = path + "/log/" + 'getWavesMaps.log'
 logging.basicConfig(filename=LOGFILE, format=LOGFORMAT, level=logging.WARN)
-FROMEMAIL = "<YOUR_FROM_EMAIL>"
-TOEMAIL = "<YOUR_TO_EMAIL>"
+FROMEMAIL = "Root <fm@fabiomarzocca.com>"
+TOEMAIL = "marzoccafabio@gmail.com"
 
 
 TEMPDIR = "/tmp/CMEMSmaps/"
@@ -131,12 +136,9 @@ def testOneShot(ncfile):
     plt.show()
     plt.savefig("prova_s065.jpg", quality=75)
     plt.close()
-   
 
 def getMaps(ncfile):
     myCMEMSdata = xr.open_dataset(ncfile).resample(time='3H').reduce(np.mean)
-
-    plt.figure(figsize=(20.48, 10.24))
 
     # projection, lat/lon extents and resolution of polygons to draw
     # resolutions: c - crude, l - low, i - intermediate, h - high, f - full
@@ -156,6 +158,7 @@ def getMaps(ncfile):
     #cycle time to save maps
     i=0
     while i < myCMEMSdata.time.values.size:
+        fig=plt.figure(figsize=(20.48, 10.24))
         map.shadedrelief(scale=0.65)
         #waves height
         waveH = myCMEMSdata.VHM0.values[i, :, :]
@@ -163,20 +166,25 @@ def getMaps(ncfile):
         map.pcolormesh(x, y, waveH, cmap=my_cmap, norm=matplotlib.colors.LogNorm(vmin=0.07, vmax=4.,clip=True))
         # waves direction
         wDir = myCMEMSdata.VMDR.values[i, :, :]
-        map.quiver(x[points],y[points],np.cos(np.deg2rad(270-wDir[points])),np.sin(np.deg2rad(270-wDir[points])),
+        map.quiver(x[tuple(points)],y[tuple(points)],np.cos(np.deg2rad(270-wDir[tuple(points)])),np.sin(np.deg2rad(270-wDir[tuple(points)])),
             edgecolor='lightgray', minshaft=4,  width=0.007, headwidth=3., headlength=4., linewidth=.5)
         # save plot
         filename = pd.to_datetime(myCMEMSdata.time[i].values).strftime("%Y-%m-%d_%H")
-        plt.show()
+        #plt.show()
         plt.savefig(TEMPDIR+filename+".jpg", quality=75)
         plt.clf()
         del wDir
         del waveH
+        del my_cmap
+        plt.close("all")
+        del fig
         i += 1
 
     #out of loop
-    plt.close("all")
+    del map
+    myCMEMSdata.close()
     del myCMEMSdata
+    gc.collect()
 
 def mapsUpdated():
     try:
@@ -196,14 +204,14 @@ def todayProductionUpdate():
     requestEndDateCoverage = subprocess.getoutput(
         MOTUCLIENT + ' -s MEDSEA_ANALYSIS_FORECAST_WAV_006_017-TDS  -D -q -o console | grep "timeCoverage" ')
 
-    if 'timeCoverage msg="OK"' not in requestEndDateCoverage:
+    if 'msg="OK"' not in requestEndDateCoverage:
         logging.warning('Processing MOTU EndDateCoverage request failed!')
+        send_notice_mail('Processing MOTU EndDateCoverage request failed!')
         return False
 
-    parsedDate = requestEndDateCoverage[requestEndDateCoverage.find(
-        'end=') + 4:requestEndDateCoverage.find('start=')]
-    parsedDate = parsedDate.strip().replace('"', '')
-    parsedDate = parsedDate[0:10]
+    requestEndDateCoverage = requestEndDateCoverage.strip().replace('"', '')
+    b = requestEndDateCoverage.find('end=')+4
+    parsedDate = requestEndDateCoverage[b:b+10]
 
     dateInterval = (datetime.strptime(
         parsedDate, "%Y-%m-%d").date() - datetime.now().date()).days
